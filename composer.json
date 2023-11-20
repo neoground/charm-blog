@@ -1,0 +1,25 @@
+{
+  "name": "neoground/charm-blog",
+  "description": "Charm Blog Module",
+  "homepage": "https://neoground.com/projects/charm",
+  "license": "MIT",
+  "version": "0.1",
+  "authors": [
+    {
+      "name": "Sven Reifschneider",
+      "homepage": "https://neoground.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "neoground/charm": "^3.1",
+    "neoground/charm-markdown": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "Neoground\\Charm\\Blog\\": "app/"
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable" : true
+}

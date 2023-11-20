@@ -1,0 +1,8 @@
+# +-------------------------------------------------------------------------+
+# | charm.yaml - The Charm Module Manifest                                  |
+# +-------------------------------------------------------------------------+
+
+name:    Charm-Blog
+version: 1.0
+summary: A blog engine with API
+binding: \Neoground\Charm\Blog\Blog
