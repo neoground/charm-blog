@@ -432,4 +432,61 @@ class BlogPost
         return $this;
     }
 
+    /**
+     * Create RSS feed xml file and save it
+     *
+     * @param string $lang wanted language or "all". In our case: de / en / all
+     *
+     * @return bool|int return from file_put_contents of xml file
+     */
+    public static function createRssFeed(string $lang): bool|int
+    {
+        $feed_path = C::Storage()->getDataPath() . DS . 'feed_' . $lang . '.xml';
+        if (file_exists($feed_path)) {
+            unlink($feed_path);
+        }
+
+        $x = new self;
+
+        if ($lang != 'all') {
+            $x->filter('language', '=', $lang);
+        }
+
+        $posts = $x->getAll();
+
+        // XML header
+        $content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\">\n<channel>\n
+<title>" . C::Config()->get('user:rss.title_' . $lang) . "</title>
+<link>" . C::Config()->get('user:rss.link_' . $lang) . "</link>
+<description>" . C::Config()->get('user:rss.description_' . $lang) . "</description>
+<generator>" . C::Config()->get('user:rss.generator') . "</generator>
+<copyright>" . C::Config()->get('user:rss.copyright') . "</copyright>
+<image>
+  <link>" . C::Config()->get('user:rss.blog_base_url') . "</link>
+  <title>" . C::Config()->get('user:rss.title_' . $lang) . "</title>
+  <url>" . C::Router()->getBaseUrl() . "/" . C::Config()->get('user:rss.image_relpath') . "</url>
+</image>
+<lastBuildDate>" . Carbon::now()->toRfc822String() . "</lastBuildDate>
+<language>" . $lang . "</language>\n\n";
+
+        foreach ($posts as $post) {
+            if ($post['published']) {
+                // Add single item (post)
+                $content .= "<item>
+<title>" . $post['title'] . "</title>
+<guid>" . C::Config()->get('user:rss.guid_prefix') . "-" . $post['slug'] . "</guid>
+<pubDate>" . Carbon::parse($post['date'])->toRfc822String() . "</pubDate>
+<category>" . $post['category'] . "</category>
+<link>" . C::Config()->get('user:rss.blog_base_url') . '/' . $post['slug'] . "</link>
+<description>" . $post['excerpt'] . "</description>
+</item>\n";
+            }
+        }
+
+        // XML footer
+        $content .= "\n</channel>\n</rss>";
+
+        return file_put_contents($feed_path, $content);
+    }
+
 }
