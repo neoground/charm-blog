@@ -8,6 +8,8 @@ namespace Neoground\Charm\Blog\Models;
 use Carbon\Carbon;
 use Charm\Vivid\C;
 use Neoground\Charm\Markdown\MarkdownDocument;
+use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Class BlogPost
@@ -487,6 +489,51 @@ class BlogPost
         $content .= "\n</channel>\n</rss>";
 
         return file_put_contents($feed_path, $content);
+    }
+
+    public static function backupComments(string $post_slug): void
+    {
+        $comments = C::Redis()->getClient()->hgetall('blog_post_comments_' . $post_slug);
+        $arr = [];
+        foreach ($comments as $k => $comment) {
+            $arr[$k] = json_decode($comment, true);
+        }
+
+        if (count($arr) > 0) {
+            $file = C::Storage()->getDataPath() . DS . 'blog' . DS . 'comments';
+            C::Storage()->createDirectoriesIfNotExisting($file);
+            $file .= DS . $post_slug . '.yaml';
+
+            if (file_exists($file)) {
+                unlink($file);
+            }
+
+            file_put_contents($file, Yaml::dump($arr));
+        }
+    }
+
+    public static function restoreCommentsFromBackup(string $post_slug, $output = null): bool
+    {
+        if (!is_object($output)) {
+            $output = new NullOutput();
+        }
+
+        $file = C::Storage()->getDataPath() . DS . 'blog' . DS . 'comments' . DS . $post_slug . '.yaml';
+        if (file_exists($file)) {
+            // First remove whole hash set so only restored comments will appear
+            C::Redis()->getClient()->del('blog_post_comments_' . $post_slug);
+
+            // Decode comments and load into redis
+            $content = file_get_contents($file);
+            $arr = Yaml::parse($content);
+            foreach ($arr as $id => $comment) {
+                $output->writeln('Loading comment: ' . $id);
+                C::Redis()->getClient()->hset('blog_post_comments_' . $post_slug, $id, json_encode($comment));
+            }
+            return true;
+        }
+
+        return false;
     }
 
 }
