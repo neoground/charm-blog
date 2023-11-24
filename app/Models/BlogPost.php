@@ -536,4 +536,57 @@ class BlogPost
         return false;
     }
 
+    public static function getRecommendedPostsFor(string $post_slug, int $amount = 3): array|bool
+    {
+        $user_lang = C::Formatter()->getLanguage();
+
+        $x = new self;
+        $post = $x->get($post_slug);
+
+        if (!$post) {
+            return false;
+        }
+
+        $blacklist = [$post_slug];
+
+        $posts = [];
+
+        // Add latest posts from same category, except this post
+        $filtered = new self;
+        $filtered->filter('category', '=', $post['category']);
+
+        // Filter by language in any case
+        if (in_array($user_lang, C::Config()->get('main:session.available_languages', []))) {
+            $filtered->filter('language', '=', $user_lang);
+            $x->filter('language', '=', $user_lang);
+        }
+
+        foreach ($filtered->getPostsForPage(1) as $filterpost) {
+            if (!in_array($filterpost['slug'], $blacklist)) {
+                $posts[] = $filterpost;
+                $blacklist[] = $filterpost['slug'];
+            }
+
+            if (count($posts) >= $amount) {
+                break;
+            }
+        }
+
+        // If not enough: Add latest posts in general, except this post
+        if (count($posts) < $amount) {
+            foreach ($x->getPostsForPage(1) as $filterpost) {
+                if (!in_array($filterpost['slug'], $blacklist)) {
+                    $posts[] = $filterpost;
+                    $blacklist[] = $filterpost['slug'];
+                }
+
+                if (count($posts) >= $amount) {
+                    break;
+                }
+            }
+        }
+
+        return $posts;
+    }
+
 }
