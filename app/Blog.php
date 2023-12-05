@@ -160,4 +160,31 @@ class Blog extends EngineManager implements ModuleInterface
         return $tags;
     }
 
+    /**
+     * Get the path to the RSS feed XML file
+     *
+     * If the feed doesn't exist, it will be generated.
+     * But it must be regenerated manually via
+     * BlogPost::createRssFeed($lang).
+     *
+     * @param string $lang language of the RSS feed (e.g. "en" or "all" for all posts)
+     *
+     * @return string|false returns the path or false if $lang is invalid
+     */
+    public function getRssFeedPath(string $lang): string|bool
+    {
+        $available = C::Config()->get('user:blog.rss_versions');
+        if (in_array($lang, $available)) {
+            $xml_path = C::Storage()->getDataPath() . DS . 'feed_' . $lang . '.xml';
+
+            if (!file_exists($xml_path)) {
+                BlogPost::createRssFeed($lang);
+            }
+
+            return $xml_path;
+        }
+
+        return false;
+    }
+
 }

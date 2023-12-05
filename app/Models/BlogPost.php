@@ -437,16 +437,15 @@ class BlogPost
     /**
      * Create RSS feed xml file and save it
      *
-     * @param string $lang wanted language or "all". In our case: de / en / all
+     * @param string $lang wanted language or "all". E.g.: de / en / all
      *
      * @return bool|int return from file_put_contents of xml file
      */
     public static function createRssFeed(string $lang): bool|int
     {
         $feed_path = C::Storage()->getDataPath() . DS . 'feed_' . $lang . '.xml';
-        if (file_exists($feed_path)) {
-            unlink($feed_path);
-        }
+        C::Storage()->createDirectoriesIfNotExisting(dirname($feed_path));
+        C::Storage()->deleteFileIfExists($feed_path);
 
         $x = new self;
 
