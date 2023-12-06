@@ -588,4 +588,39 @@ class BlogPost
         return $posts;
     }
 
+    public function getComments($post_slug): array
+    {
+        $comments = C::Redis()->getClient()->hgetall('blog_post_comments_' . $post_slug);
+
+        // Format content arrays and only display approved comments
+        $comments_arr = [];
+        foreach ($comments as $comment) {
+            $arr = json_decode($comment, true);
+            if ($arr['approved']) {
+                // Format content
+                $pd = new \ParsedownExtra();
+                $content = str_replace("<a href", '<a target="_blank" href', $pd->text($arr['msg']));
+                $content = str_replace(['<h1', '<h2', '<h3'], '<h4', $content);
+                $content = str_replace(['</h1', '</h2', '</h3'], '</h4', $content);
+
+                // nl2br
+                $content = str_replace("\n", '<br />', $content);
+
+                $arr['html_content'] = $content;
+
+                // URL formatting
+                if (!empty($arr['website']) && !str_contains($arr['website'], 'http')) {
+                    $arr['website'] = 'https://' . $arr['website'];
+                }
+
+                $comments_arr[] = $arr;
+            }
+        }
+
+        // Sort to new -> old
+        C::Arrays()->sortByTwoKeys($comments_arr, 'created_at', 'name');
+
+        return $comments_arr;
+    }
+
 }

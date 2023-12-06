@@ -118,6 +118,7 @@ class Blog extends EngineManager implements ModuleInterface
             'form_token' => $token,
             'form_input' => C::Request()->getAllFromSession(),
             'recommended' => BlogPost::getRecommendedPostsFor($name),
+            'comments' => $b->getComments($name),
         ];
     }
 
