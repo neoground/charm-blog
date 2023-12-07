@@ -623,4 +623,96 @@ class BlogPost
         return $comments_arr;
     }
 
+    /**
+     * Add a new comment (data provided via request)
+     *
+     * @return bool
+     */
+    public function addComment(): bool
+    {
+        $post_slug = C::Request()->get('post');
+        $name = C::Request()->get('name');
+        $website = C::Request()->get('usersite');
+        $email = C::Formatter()->sanitizeEmail(C::Request()->get('email'));
+        $msg = C::Request()->get('msg');
+        $honeypot = C::Request()->get('website');
+
+        $submitted_token = C::Request()->get('token');
+        $session_token = C::Session()->get('form_token');
+
+        $bp = new BlogPost();
+        $post = $bp->get($post_slug);
+
+        // Sanitize message
+        $msg = strip_tags($msg);
+        $msg = trim($msg);
+
+        // Spam detection: world edition
+        // TODO Improve spam detection
+        if (preg_match("/\p{Cyrillic}+/u", $msg)
+            || preg_match("/\p{Han}+/u", $msg)) {
+            // Got cyrillic / chinese characters!
+            C::Logging()->info('[BLOG] Got foreign language, ignoring comment!');
+            C::Guard()->saveWrongLoginAttempt();
+            C::Session()->delete('form_token');
+            return false;
+        }
+
+        // Honey pot + validation + csrf token check
+        if (!empty($post_slug) && $post
+            && !empty($name) && !empty($msg) && strlen($msg) > 6
+            && filter_var($email, FILTER_VALIDATE_EMAIL)
+            && empty($honeypot)
+            && $submitted_token == $session_token
+            && C::Guard()->getWrongLoginAttempts() < 20
+        ) {
+            // Got valid comment -> add
+            $len = strlen($msg);
+            if ($len > 5000) {
+                $msg = mb_substr($msg, 0, 5000);
+            }
+
+            $id = C::Token()->createToken();
+
+            $comment = [
+                'name' => trim($name),
+                'email' => trim($email),
+                'website' => trim($website),
+                'msg' => strip_tags($msg),
+                'created_at' => Carbon::now()->toIso8601String(),
+                'ip' => C::Request()->getIpAddress(),
+                'approved' => false
+            ];
+
+            try {
+                C::Redis()->getClient()->hset('blog_post_comments_' . $post_slug, $id, json_encode($comment));
+            } catch(\RedisException $e) {
+                // Comment could not be saved!
+                return false;
+            }
+
+            // Notify admin via email
+            // TODO Make this optional, add webhook option
+            C::Mailman()->compose()
+                ->addAddress(C::Config()->get('user:blog.comments_email.to'),
+                    C::Config()->get('user:blog.comments_email.to_name'))
+                ->setSubject(C::Config()->get('user:blog.comments_email.subject'))
+                ->setTemplate('blogcomment', [
+                    'comment' => $comment,
+                    'id' => $id,
+                    'post' => $post
+                ], true)
+                ->send();
+
+            C::Session()->delete('form_token');
+            return true;
+        }
+
+        // Empty fields or honeypot
+        C::Logging()->info('[BLOG] Got invalid comment, ignoring!');
+        C::Guard()->saveWrongLoginAttempt();
+        C::Session()->delete('form_token');
+        return false;
+    }
+
 }
