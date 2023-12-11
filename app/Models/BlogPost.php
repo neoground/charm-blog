@@ -715,4 +715,63 @@ class BlogPost
         return false;
     }
 
+    /**
+     * Endpoint to moderate a comment
+     *
+     * Data provided via request.
+     *
+     * @return bool true on success, false on error
+     */
+    public function moderateComment(): bool
+    {
+        $id = C::Request()->get('id');
+        $slug = C::Request()->get('slug');
+
+        // TODO Add token or other better security
+
+        // Wanted action: approve, remove, removeblock
+        $action = C::Request()->get('action');
+
+        $key = 'blog_post_comments_' . $slug;
+
+        try {
+            $comment = C::Redis()->getClient()->hget($key, $id);
+
+            if (!empty($comment)) {
+                $carr = json_decode($comment, true);
+
+                if ($action == 'approve') {
+                    $carr['approved'] = true;
+                    C::Redis()->getClient()->hset($key, $id, json_encode($carr));
+                    BlogPost::backupComments($slug);
+                    return true;
+                }
+
+                if ($action == 'remove') {
+                    C::Redis()->getClient()->hdel($key, $id);
+                    BlogPost::backupComments($slug);
+                    return true;
+                }
+
+                if ($action == 'removeblock') {
+                    C::Redis()->getClient()->hdel($key, [$id]);
+                    $blocked = C::Redis()->getClient()->get('blog_blocked_ips');
+                    if (empty($blocked)) {
+                        $blocked = '';
+                    }
+                    $blocked .= ';' . $carr['ip'];
+                    C::Redis()->getClient()->set('blog_blocked_ips', $blocked);
+                    BlogPost::backupComments($slug);
+                    return true;
+                }
+            }
+
+        } catch(\RedisException $e) {
+            // Got redis error
+            return false;
+        }
+
+        return false;
+    }
+
 }
