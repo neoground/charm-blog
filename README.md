@@ -2,6 +2,12 @@
 
 This provides blog functionalities for Charm apps.
 
+All blog posts are markdown files with YAML frontmatter. You can easily add thumbnails and hero images and
+assets of all kind.
+
+The whole blog engine runs flat-file, including comments handling. But you can also provide Redis
+for better performance and caching.
+
 ## Installation
 
 Begin your quest by adding charm-blog to your project via Composer:
@@ -26,6 +32,9 @@ bob cm:i neoground/charm-markdown
 
 Todo. This module is in early alpha. A usage guide will follow once we reach a beta state soon.
 
+For a reference implementation see the [Markcoon](https://github.com/neoground/markcoon) project. 
+It's a simple-to-use blog which uses this module under the hood.
+
 ### Configuration
 
 Configuration in your app's `user.yaml`:
@@ -35,6 +44,7 @@ rss:
   # Title, link, description can be multilingual, e.g. "description_de" for german
   title_en: My English Blog
   link_en: https://example.com/en/blog
+  # Description of RSS feed
   description_en: Description of our blog
   # Absolute URL to blog index page
   blog_base_url: https://example.com/blog
@@ -45,5 +55,4 @@ rss:
   image_relpath: icon.png
   # Prefix to add to each post slug for the guid
   guid_prefix: blog
-  # Description of RSS feed.
 ```
