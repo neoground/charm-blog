@@ -6,10 +6,10 @@
 namespace Neoground\Charm\Blog;
 
 use Carbon\Carbon;
-use Neoground\Charm\Blog\Models\BlogPost;
 use Charm\Vivid\C;
 use Charm\Vivid\Kernel\EngineManager;
 use Charm\Vivid\Kernel\Interfaces\ModuleInterface;
+use Neoground\Charm\Blog\Models\BlogPost;
 
 /**
  * Class Blog
@@ -58,13 +58,22 @@ class Blog extends EngineManager implements ModuleInterface
 
         $posts = $b->getPostsForPage($page, $per_page);
 
+        // Add comments count
+        if ($posts) {
+            foreach ($posts as $k => $v) {
+                $posts[$k]['comments_count'] = count(
+                    C::Redis()->getClient()->hgetall('blog_post_comments_' . $v['slug'])
+                );
+            }
+        }
+
         return [
             'tag' => $name,
             'category' => $name,
             'posts' => $posts,
             'pagination' => [
                 'page' => $page,
-                'total' => $b->getTotalPages($per_page)
+                'total' => $b->getTotalPages($per_page),
             ],
             'categories' => $this->getFooterCats($b_all),
             'tags' => $this->getFooterTags($b_all),
