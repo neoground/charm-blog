@@ -1,0 +1,39 @@
+# --------------------------------------------- #
+# Blog specific configuration                   #
+# --------------------------------------------- #
+
+appearance:
+  # Theme to use (dir name in app/Views/blog)
+  theme: default
+
+posts:
+  # Only display posts which are published (is_published=1)?
+  only_display_published: true
+  # Keywords to add to each post
+  base_keywords: charm blog
+  # Default images filenames relative to assets dir
+  default_thumbnail: images/thumbnail.webp
+  default_hero: images/hero.webp
+  # Amount of posts per page on overview pages
+  per_page: 10
+
+rss:
+  # RSS channel
+  title_en: My Blog Title
+  title_all: My Blog Title
+  link_en: https://example.com/blog
+  link_all: https://example.com/blog
+  blog_base_url: https://example.com/blog
+  description_en:
+  description_all:
+  generator: Charm-Blog
+  copyright: (c) Author Name
+  image_relpath: 'assets/images/icon.webp'
+  # Prefix to apply before slug on guid of e.g., comments
+  guid_prefix: 'blog-'
+  # Versions of RSS to create (both languages + all)
+  versions:
+    - en
+    - all
+
+auth:

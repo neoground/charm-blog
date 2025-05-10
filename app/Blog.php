@@ -10,6 +10,7 @@ use Charm\Vivid\C;
 use Charm\Vivid\Kernel\EngineManager;
 use Charm\Vivid\Kernel\Interfaces\ModuleInterface;
 use Neoground\Charm\Blog\Models\BlogPost;
+use Neoground\Charm\Blog\Models\RssFeed;
 
 /**
  * Class Blog
@@ -188,7 +189,7 @@ class Blog extends EngineManager implements ModuleInterface
             $xml_path = C::Storage()->getDataPath() . DS . 'feed_' . $lang . '.xml';
 
             if (!file_exists($xml_path)) {
-                BlogPost::createRssFeed($lang);
+                RssFeed::createXml($lang);
             }
 
             return $xml_path;
