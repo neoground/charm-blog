@@ -32,6 +32,12 @@ class RssFeed
         $b = new BlogPost();
         $posts = $b->getAll();
 
+        // Sort posts DESC
+        rsort($posts);
+
+        // Limit to latest 50 posts
+        $posts = array_slice($posts, 0, C::Config()->get('blog:rss.amount', 50));
+
         // XML header
         $content = "<?xml version='1.0' encoding='UTF-8'?>\n<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<channel>\n
 <title>" . C::Config()->get('blog:rss.title_' . $lang) . "</title>
@@ -73,10 +79,10 @@ class RssFeed
     {
         return "<item>
 <title>" . $post['title' . $key_suffix] . "</title>
-<guid>" . C::Config()->get('blog:rss.blog_base_url') . '/' . $post['slug' . $key_suffix] . "</guid>
+<guid>" . C::Config()->get('blog:rss.blog_base_url') . '/' . $post['slug' . $key_suffix] . "?utm_src=rss</guid>
 <pubDate>" . Carbon::parse($post['published_at'])->toRfc2822String() . "</pubDate>
 <category>" . $post['category' . $key_suffix] . "</category>
-<link>" . C::Config()->get('blog:rss.blog_base_url') . '/' . $post['slug' . $key_suffix] . "</link>
+<link>" . C::Config()->get('blog:rss.blog_base_url') . '/' . $post['slug' . $key_suffix] . "?utm_src=rss</link>
 <description>" . $post['excerpt' . $key_suffix] . "</description>
 </item>\n";
     }
