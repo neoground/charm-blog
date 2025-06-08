@@ -93,7 +93,7 @@ class RssFeed
 <image>
   <link>" . $blog_url . "</link>
   <title>" . $title . "</title>
-  <url>" . C::Router()->getBaseUrl() . "/" . C::Config()->get('blog:rss.image_relpath') . "</url>
+  <url>" . C::Router()->getBaseUrl() . "/" . ltrim(C::Config()->get('blog:rss.image_relpath'), '/') . "</url>
 </image>
 <lastBuildDate>" . Carbon::now()->toRfc2822String() . "</lastBuildDate>
 <atom:link href=\"" . $feed_url . "\" rel=\"self\" type=\"application/rss+xml\" />
@@ -123,7 +123,7 @@ class RssFeed
     {
         return [
             'title' => $post['title' . $key_suffix],
-            'link' => C::Config()->get('blog:rss.blog_base_url') . '/' . $post['slug' . $key_suffix] . "?utm_src=rss",
+            'link' => C::Config()->get('blog:rss.blog_base_url', C::Router()->getBaseUrl()) . '/' . $post['slug' . $key_suffix] . "?utm_src=rss",
             'published_at' => $post['published_at'],
             'category' => $post['category' . $key_suffix],
             'description' => $post['excerpt' . $key_suffix],
