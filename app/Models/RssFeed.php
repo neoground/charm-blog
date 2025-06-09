@@ -17,6 +17,60 @@ use Charm\Vivid\C;
  */
 class RssFeed
 {
+    /** @var array Posts array. each sub-array must have a structure suitable for getEntryXml(). */
+    protected array $posts;
+    /** @var string Language of the feed, e.g., en, de, fr. */
+    protected string $language = 'en';
+    /** @var string Feed title. */
+    protected string $title = '';
+    /** @var string Feed description. */
+    protected string $description = '';
+    /** @var string Absolute URL to blog index page (or of the area the XML feed is about). */
+    protected string $blog_url = '';
+    /** @var string Absolute URL to the generated XML feed. */
+    protected string $feed_url = '';
+
+    public function __construct()
+    {
+
+    }
+
+    public function setPosts(array $posts): static
+    {
+        $this->posts = $posts;
+        return $this;
+    }
+
+    public function setLanguage(string $language): static
+    {
+        $this->language = $language;
+        return $this;
+    }
+
+    public function setTitle(string $title): static
+    {
+        $this->title = $title;
+        return $this;
+    }
+
+    public function setDescription(string $description): static
+    {
+        $this->description = $description;
+        return $this;
+    }
+
+    public function setBlogUrl(string $blog_url): static
+    {
+        $this->blog_url = $blog_url;
+        return $this;
+    }
+
+    public function setFeedUrl(string $feed_url): static
+    {
+        $this->feed_url = $feed_url;
+        return $this;
+    }
+
     /**
      * Create and save a blog XML feed for a specified language.
      *
@@ -27,8 +81,6 @@ class RssFeed
     public static function createXml(string $lang): bool|int
     {
         $feed_path = C::Storage()->getDataPath() . DS . 'blog' . DS . 'feed_' . $lang . '.xml';
-        C::Storage()->createDirectoriesIfNotExisting($feed_path);
-        C::Storage()->deleteFileIfExists($feed_path);
 
         $b = new BlogPost();
         $posts = $b->getAll();
@@ -58,50 +110,68 @@ class RssFeed
         }
 
         // XML
-        $title = C::Config()->get('blog:rss.title_' . $lang);
-        $description = C::Config()->get('blog:rss.description_' . $lang);
-        $blog_url = C::Config()->get('blog:rss.link_' . $lang);
-        $feed_url = C::Config()->get('blog:rss.blog_base_url') . "/feed/" . $lang;
-        $content = self::createCustomXmlFeed($postarr, $title, $description, $blog_url, $feed_url, $lang);
-
-        return file_put_contents($feed_path, $content);
+        return (new self())->setPosts($postarr)
+            ->setLanguage($lang)
+            ->setMetadataByConfig()
+            ->saveXmlAsFile($feed_path);
     }
 
     /**
-     * Create a custom XML feed.
+     * Set metadata fields by config values.
      *
-     * @param array  $posts       the posts array. each sub-array must have a structure suitable for
-     *                            self::getEntryXml().
-     * @param string $title       RSS / blog title.
-     * @param string $description RSS / blog description.
-     * @param string $blog_url    absolute URL to the blog / area the RSS feed is about.
-     * @param string $feed_url    absolute URL to the feed.
-     * @param string $language    language of the feed (e.g., de, en).
+     * Sets title, description, urls by config. Make sure the language is set first, since
+     * the config keys are language dependent.
      *
-     * @return string the RSS feed as a formatted XML string.
+     * @return static
      */
-    public static function createCustomXmlFeed(array  $posts, string $title, string $description,
-                                               string $blog_url, string $feed_url, string $language = 'en'): string
+    public function setMetadataByConfig(): static
+    {
+        return $this->setTitle(C::Config()->get('blog:rss.title_' . $this->language, ''))
+            ->setDescription(C::Config()->get('blog:rss.description_' . $this->language, ''))
+            ->setBlogUrl(C::Config()->get('blog:rss.link_' . $this->language, C::Router()->getBaseUrl()))
+            ->setFeedUrl(C::Config()->get('blog:rss.blog_base_url', C::Router()->getBaseUrl()) . "/feed/" . $this->language);
+    }
+
+    /**
+     * Save the XML as a file.
+     *
+     * @param string $path The absolute path to the file.
+     *
+     * @return bool|int Returns the number of bytes written to the file on success, or false on failure.
+     */
+    public function saveXmlAsFile(string $path): bool|int
+    {
+        C::Storage()->createDirectoriesIfNotExisting(dirname($path));
+        C::Storage()->deleteFileIfExists($path);
+        return file_put_contents($path, $this->getXmlFeed());
+    }
+
+    /**
+     * Get the created XML feed as a formatted string.
+     *
+     * @return string the formatted XML feed string.
+     */
+    public function getXmlFeed(): string
     {
         // XML header
         $content = "<?xml version='1.0' encoding='UTF-8'?>\n<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n<channel>\n
-<title>" . $title . "</title>
-<link>" . $blog_url . "</link>
-<description>" . $description . "</description>
+<title>" . $this->title . "</title>
+<link>" . $this->blog_url . "</link>
+<description>" . $this->description . "</description>
 <generator>" . C::Config()->get('blog:rss.generator', 'charm-blog') . "</generator>
 <copyright>" . C::Config()->get('blog:rss.copyright', '') . "</copyright>
 <image>
-  <link>" . $blog_url . "</link>
-  <title>" . $title . "</title>
+  <link>" . $this->blog_url . "</link>
+  <title>" . $this->title . "</title>
   <url>" . C::Router()->getBaseUrl() . "/" . ltrim(C::Config()->get('blog:rss.image_relpath'), '/') . "</url>
 </image>
 <lastBuildDate>" . Carbon::now()->toRfc2822String() . "</lastBuildDate>
-<atom:link href=\"" . $feed_url . "\" rel=\"self\" type=\"application/rss+xml\" />
-<language>" . $language . "</language>\n\n";
+<atom:link href=\"" . $this->feed_url . "\" rel=\"self\" type=\"application/rss+xml\" />
+<language>" . $this->language . "</language>\n\n";
 
-        foreach ($posts as $post) {
+        foreach ($this->posts as $post) {
             if (!array_key_exists('is_published', $post) || $post['is_published']) {
-                $content .= self::getEntryXml($post);
+                $content .= $this->getEntryXml($post);
             }
         }
 
@@ -112,7 +182,7 @@ class RssFeed
     }
 
     /**
-     * Format a blog post array into an entry compatible with self::getEntryXml().
+     * Format a blog post array into an entry compatible with getEntryXml().
      *
      * @param array       $post       the blog post array.
      * @param string|null $key_suffix optional key suffix (e.g., language).
@@ -123,7 +193,8 @@ class RssFeed
     {
         return [
             'title' => $post['title' . $key_suffix],
-            'link' => C::Config()->get('blog:rss.blog_base_url', C::Router()->getBaseUrl()) . '/' . $post['slug' . $key_suffix] . "?utm_src=rss",
+            'link' => C::Config()->get('blog:rss.blog_base_url', C::Router()->getBaseUrl())
+                . '/' . $post['slug' . $key_suffix] . "?utm_src=rss",
             'published_at' => $post['published_at'],
             'category' => $post['category' . $key_suffix],
             'description' => $post['excerpt' . $key_suffix],
@@ -140,7 +211,7 @@ class RssFeed
      *
      * @return string the entry XML as formatted string.
      */
-    public static function getEntryXml(array $post): string
+    public function getEntryXml(array $post): string
     {
         return "<item>
 <title>" . $post['title'] . "</title>
