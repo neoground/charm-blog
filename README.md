@@ -8,6 +8,12 @@ assets of all kind.
 The whole blog engine runs flat-file, including comments handling. But you can also provide Redis
 for better performance and caching.
 
+## Features
+
+- Create RSS feeds easily via the `RssFeed` class
+- Easily access, filter, sort and paginate rss posts
+- Saves blog posts metadata as file and in redis
+
 ## Installation
 
 Begin your quest by adding charm-blog to your project via Composer:
