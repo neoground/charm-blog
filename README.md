@@ -8,11 +8,15 @@ assets of all kind.
 The whole blog engine runs flat-file, including comments handling. But you can also provide Redis
 for better performance and caching.
 
+🚧 We're currently working on a hybrid solution, which allows you to manage your blog posts 
+also remotely via a REST API. The API will also be able to synchronize assets and comments.
+
 ## Features
 
 - Create RSS feeds easily via the `RssFeed` class
 - Easily access, filter, sort and paginate rss posts
 - Saves blog posts metadata as file and in redis
+- Configure the blog via `blog.yaml`
 
 ## Installation
 
