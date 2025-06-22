@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Charm\Vivid\C;
 use Charm\Vivid\Kernel\EngineManager;
 use Charm\Vivid\Kernel\Interfaces\ModuleInterface;
+use Charm\Vivid\Kernel\Output\File;
 use Neoground\Charm\Blog\Models\BlogPost;
 use Neoground\Charm\Blog\Models\RssFeed;
 
@@ -196,6 +197,22 @@ class Blog extends EngineManager implements ModuleInterface
         }
 
         return false;
+    }
+
+    public function getRssFeedFileObject(string $lang): File
+    {
+        $xml_path = $this->getRssFeedPath($lang);
+
+        if (!$xml_path) {
+            return File::make()->withContent('')
+                ->withContentType('application/rss+xml; charset=UTF-8')
+                ->inline();
+        }
+
+        return File::make('feed.xml')
+            ->withFile($xml_path)
+            ->withContentType('application/rss+xml; charset=UTF-8')
+            ->inline();
     }
 
 }
