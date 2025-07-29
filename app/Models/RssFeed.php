@@ -219,7 +219,24 @@ class RssFeed
 <pubDate>" . Carbon::parse($post['published_at'])->toRfc2822String() . "</pubDate>
 <category>" . $post['category'] . "</category>
 <link>" . $post['link'] . "</link>
-<description>" . $post['description'] . "</description>
+<description>" . $this->getDescriptionContent((string) $post['description']) . "</description>
 </item>\n";
+    }
+
+    private function getDescriptionContent(string $description): string
+    {
+        // Check if the string contains XML-breaking characters
+        $needsCdata = str_contains($description, '<')
+            || str_contains($description, '&')
+            || preg_match('/[\x80-\xFF]/', $description); // non-ASCII, e.g. “ — € 🎉 etc.
+
+        if ($needsCdata) {
+            // Escape any existing CDATA end sequences to prevent breaking the block
+            $safeDescription = str_replace(']]>', ']]]]><![CDATA[>', $description);
+            return "<![CDATA[{$safeDescription}]]>";
+        }
+
+        // Safe to just escape entities and return
+        return htmlspecialchars($description, ENT_XML1 | ENT_COMPAT, 'UTF-8');
     }
 }
